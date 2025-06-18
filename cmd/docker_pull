@@ -1,0 +1,138 @@
+#!/bin/bash
+
+# Find config file path
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONFIG_FILE="$SCRIPT_DIR/conf.yaml"
+if [ ! -f "$CONFIG_FILE" ]; then
+    echo "Error: Configuration file conf.yaml not found in $(dirname "$0")"
+    exit 1
+fi
+
+# Initialize variables
+REGISTRY_URL=""
+REGISTRY_NS=""
+IMAGES_DIR=""
+MAX_RETRIES=""
+RETRY_DELAY=""
+FIRST_DELAY=""
+
+# Read configuration
+while IFS= read -r line || [ -n "$line" ]; do
+    # Skip comments and empty lines
+    line=$(echo "$line" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+    [[ -z "$line" || "$line" =~ ^# ]] && continue
+    
+    # Split key and value
+    key=$(echo "$line" | cut -d':' -f1 | tr -d '[:space:]' | tr -d '"')
+    value=$(echo "$line" | cut -d':' -f2- | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' | tr -d '"')
+    
+    case "$key" in
+        "registry")
+            REGISTRY_URL="$value"
+            ;;
+        "namespace")
+            REGISTRY_NS="$value"
+            ;;
+        "images_dir")
+            IMAGES_DIR="$value"
+            ;;
+        "max_retries")
+            MAX_RETRIES="$value"
+            ;;
+        "retry_delay")
+            RETRY_DELAY="$value"
+            ;;
+        "first_delay")
+            FIRST_DELAY="$value"
+            ;;
+    esac
+done < "$CONFIG_FILE"
+
+# Set defaults
+MAX_RETRIES=${MAX_RETRIES:-60}
+RETRY_DELAY=${RETRY_DELAY:-1}
+FIRST_DELAY=${FIRST_DELAY:-20}
+
+# Check required configurations
+if [ -z "$REGISTRY_URL" ]; then
+    echo "[Error] registry not configured in conf.yaml"
+    exit 1
+fi
+
+if [ -z "$REGISTRY_NS" ]; then
+    echo "[Error] namespace not configured in conf.yaml"
+    exit 1
+fi
+
+if [ -z "$IMAGES_DIR" ]; then
+    echo "[Error] images_dir not configured in conf.yaml"
+    exit 1
+fi
+
+# Check for arguments
+if [ $# -eq 0 ]; then
+    echo "Usage: $0 tag1 [tag2 ...]"
+    exit 1
+fi
+
+# Write images.txt file
+echo "[record images] Writing tags to $IMAGES_DIR/images.txt"
+printf "%s\n" "$@" > "$IMAGES_DIR/images.txt"
+
+# Execute git operations
+echo "[commit images] Start git operation:"
+pushd "$IMAGES_DIR" > /dev/null
+git pull
+git add images.txt
+git commit -m "refactor: add docker tags: $*"
+git push
+popd > /dev/null
+
+echo "[pull images] wait ${FIRST_DELAY}s for docker pull in github"
+sleep "$FIRST_DELAY"
+
+# Execute docker pull with retry functionality
+FAILED_TAGS=()
+for tag in "$@"; do
+    echo "[pull images] Processing tag: $tag"
+    # Extract last part (bbb:xxx)
+    last_part=$(basename "$tag")
+    full_tag="$REGISTRY_URL/$REGISTRY_NS/$last_part"
+    success=0
+    
+    for ((attempt=1; attempt<=MAX_RETRIES; attempt++)); do
+        if [ $success -eq 0 ]; then
+            echo "[Attempt $attempt/$MAX_RETRIES] Pulling $full_tag"
+            docker pull "$full_tag"
+            
+            if [ $? -eq 0 ]; then
+                success=1
+                echo "[pull images] Successfully pulled $full_tag, now delete origin image $full_tag:"
+                docker tag "$full_tag" "$tag"
+                docker rmi "$full_tag"
+            else
+                if [ $attempt -lt $MAX_RETRIES ]; then
+                    sleep "$RETRY_DELAY"
+                fi
+            fi
+        fi
+    done
+    
+    if [ $success -eq 0 ]; then
+        echo "[pull images] Failed to pull $full_tag after $MAX_RETRIES attempts"
+        FAILED_TAGS+=("$tag")
+    fi
+done
+
+# Display failed results
+if [ ${#FAILED_TAGS[@]} -gt 0 ]; then
+    echo
+    echo "====== Summary of failed pulls ======"
+    for tag in "${FAILED_TAGS[@]}"; do
+        echo " - $REGISTRY_URL/$tag"
+    done
+    exit 1
+fi
+
+echo "====== All images pulled successfully ======"
+exit 0
