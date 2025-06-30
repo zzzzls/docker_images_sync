@@ -78,8 +78,12 @@
 ### 2.2 git仓库配置
 1. **fork仓库**
 fork开源仓库[https://github.com/you8023/docker\_images\_sync](https://github.com/you8023/docker_images_sync) 到自己git账号（可以的话帮忙点个start就更好了^-^）
-注1：若希望拉取的镜像tag保密，需自行创建权限为`private`的仓库，然后将本仓库克隆再上传到私密仓库
-注2：若希望配置的服务给好友分享使用，可在设置中的`Collaborators`处邀请好友（需好友同意邀请）：
+
+注1：若是 fork 项目，由于 GitHub 安全策略限制，需在 GitHub 个人fork后的仓库界面 Actions 确认风险提示，才能在后面脚本中能够通过 GitHub Actions 自动构建
+
+注2：若希望拉取的镜像tag保密，需自行创建权限为`private`的仓库，并将自己创建的私密仓库克隆到本地，复制本仓库文件，拷贝到本地私密仓库后push到github
+
+注3：若希望配置的服务给好友分享使用，可在设置中的`Collaborators`处邀请好友（需好友同意邀请）：
 
 ![image](images/SsKRE6clANOjn8-WsjUJyKO7tv9YfNNsNtld16GSyK4.png)
 
@@ -209,7 +213,6 @@ source ~/.zshrc
 ```
 
 ## 3. 方案使用
-注1：若是 fork 项目，因为 GitHub 安全风险的原因，需要在 GitHub 项目界面 Actions 确认风险提示，才能在后面脚本中能够通过 GitHub Actions 自动构建
 
 配置完毕后，在任意目录下使用命令即可正常拉取镜像：
 
