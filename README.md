@@ -123,6 +123,8 @@ docker login <阿里云个人镜像仓库地址>
 ```
 4. 添加脚本目录到环境变量中
 
+配置脚本到系统环境变量，使得可以在任意路径下使用docker_pull命令。这里根据自己的操作系统选取对应的配置方式：
+
 **windows系统**：
 
    1. 在文件夹左侧右键单击此电脑，选择`属性`
@@ -145,7 +147,7 @@ sudo chmod +x /home/dubito/git/docker_images_sync/cmd/docker_pull
 2. 使用命令编辑\~/.bashrc：
 
 ```bash
-vim ~/.bashrc
+sudo vim ~/.bashrc
 ```
 将以下语句添加到文件中（其中的路径需替换为自己git仓库下cmd目录的路径）：
 
@@ -157,9 +159,54 @@ export PATH=$PATH:/home/dubito/git/docker_images_sync/cmd
 ```bash
 source ~/.bashrc
 ```
+
 **Mac系统**：
 
-参考linux系统配置（目前手头没有mac设备，暂未测试，测试了的小伙伴可以留个言反馈一下，如果有问题欢迎提issue）。
+1. 对docker\_pull脚本添加执行权限（其中的路径需替换为自己的）：
+
+```bash
+sudo chmod +x /Users/dubito/git/docker_images_sync/cmd/docker_pull
+```
+
+2. 使用命令编辑配置文件：
+针对默认shell为zsh（macOS Catalina 10.15及其之后的版本）：
+```bash
+sudo vi ~/.zshrc
+```
+
+注：若Mac版本为macOS Catalina 10.15之前的版本（默认shell为bash），则使用以下命令：
+```bash
+sudo vi ~/.bash_profile
+```
+
+将以下语句添加到文件中（其中的路径需替换为自己git仓库下cmd目录的路径）：
+
+```bash
+export PATH=$PATH:/home/dubito/git/docker_images_sync/cmd
+```
+
+
+3. 使用source命令使配置生效：
+
+```bash
+source ~/.zshrc
+```
+
+注：若Mac版本为macOS Catalina (10.15)之前的版本，则使用以下命令：
+```bash
+source ~/.bash_profile
+```
+
+**补充说明**：若Mac中同时使用bash和zsh（例如使用idea的terminal执行docker_pull 提示命令不存在），则需兼容配置：
+1. 将上述修改应用于`~/.bash_profile`文件
+2. 使用命令编辑zsh的默认配置文件`sudo vi ~/.zshrc`，添加以下内容：
+```bash
+source ~/.bash_profile
+```
+3. 执行命令使配置生效：
+```bash
+source ~/.zshrc
+```
 
 ## 3. 方案使用
 注1：若是 fork 项目，因为 GitHub 安全风险的原因，需要在 GitHub 项目界面 Actions 确认风险提示，才能在后面脚本中能够通过 GitHub Actions 自动构建
@@ -188,3 +235,6 @@ docker_pull mysql:8.0.1 mcp/elasticsearch:latest bitnami/redis:8.0.2-debian-12-r
 
 ![image](images/7lpqKhbf0FXcE5gHOndINgaN-e1glM2I8saTKnnyQaw.png)
 
+注：若首次执行docker_pull命令后，github上未触发workflows工作流，则表明被安全策略拦截（fork 仓库默认不运行上游配置的workflow），需在github上配置显式启用Actions并授权Secrets访问：
+1. 打开github上fork后的仓库，点击上方Actions标签，在出现的界面中点击确认风险提示
+2. 再次使用docker_pull命令测试工作流是否正常触发
