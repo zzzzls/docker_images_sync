@@ -123,6 +123,8 @@ docker login <阿里云个人镜像仓库地址>
 ```
 4. 添加脚本目录到环境变量中
 
+配置脚本到系统环境变量，使得可以在任意路径下使用docker_pull命令。这里根据自己的操作系统选取对应的配置方式：
+
 **windows系统**：
 
    1. 在文件夹左侧右键单击此电脑，选择`属性`
@@ -145,7 +147,7 @@ sudo chmod +x /home/dubito/git/docker_images_sync/cmd/docker_pull
 2. 使用命令编辑\~/.bashrc：
 
 ```bash
-vim ~/.bashrc
+sudo vim ~/.bashrc
 ```
 将以下语句添加到文件中（其中的路径需替换为自己git仓库下cmd目录的路径）：
 
@@ -157,35 +159,53 @@ export PATH=$PATH:/home/dubito/git/docker_images_sync/cmd
 ```bash
 source ~/.bashrc
 ```
+
 **Mac系统**：
 
-1. 将docker_pull 添加到系统环境变量，这将帮助你在任意路径下都可以使用docker_pull命令 
+1. 对docker\_pull脚本添加执行权限（其中的路径需替换为自己的）：
 
-`sudo vi ~/.bash_profile`
+```bash
+sudo chmod +x /Users/dubito/git/docker_images_sync/cmd/docker_pull
+```
 
-2. 将以下内容添加到文件中（路径到cmd即可）
+2. 使用命令编辑配置文件：
+针对默认shell为zsh（macOS Catalina 10.15及其之后的版本）：
+```bash
+sudo vi ~/.zshrc
+```
 
-![20250627-163136@2x.png](images/20250627-163136%402x.png)
+注：若Mac版本为macOS Catalina 10.15之前的版本（默认shell为bash），则使用以下命令：
+```bash
+sudo vi ~/.bash_profile
+```
+
+将以下语句添加到文件中（其中的路径需替换为自己git仓库下cmd目录的路径）：
+
+```bash
+export PATH=$PATH:/home/dubito/git/docker_images_sync/cmd
+```
+
 
 3. 使用source命令使配置生效：
 
 ```bash
+source ~/.zshrc
+```
+
+注：若Mac版本为macOS Catalina (10.15)之前的版本，则使用以下命令：
+```bash
 source ~/.bash_profile
 ```
 
-4. 如果你使用的是Zsh，可以执行以下命令（例如你使用idea的terminal执行docker_pull 提示命令不存在，则使用以下步骤解决）：
-
+**补充说明**：若Mac中同时使用bash和zsh（例如使用idea的terminal执行docker_pull 提示命令不存在），则需兼容配置：
+1. 将上述修改应用于`~/.bash_profile`文件
+2. 使用命令编辑zsh的默认配置文件`sudo vi ~/.zshrc`，添加以下内容：
 ```bash
-## 打开或新建文件
-sudo vi ~/.zshrc
-
-## 将以下内容添加到文件中
 source ~/.bash_profile
-
-## 保存退出后，使配置生效
+```
+3. 执行命令使配置生效：
+```bash
 source ~/.zshrc
-
-## 打开一个新的terminal窗口即可使用docker_pull 命令
 ```
 
 ## 3. 方案使用
@@ -213,15 +233,6 @@ docker_pull mysql:8.0.1 mcp/elasticsearch:latest bitnami/redis:8.0.2-debian-12-r
 
 ![image](images/7lpqKhbf0FXcE5gHOndINgaN-e1glM2I8saTKnnyQaw.png)
 
-注：如果你发现首次执行docker_pull命令后，github上并没有触发workflows工作流. 
-
-原因：fork 仓库默认不运行上游配置的workflow，你需要显式启用Actions且拥有Secrets权限. 
-
-打开fork仓库，点开上方Actions tab，然后点击确认风险提示. 
-
-运行一个空提交来测试是否可以自动触发workflow
-
-```shell
-git commit --allow-empty -m "trigger workflow"
-git push
-```
+注：若首次执行docker_pull命令后，github上未触发workflows工作流，则表明被安全策略拦截（fork 仓库默认不运行上游配置的workflow），需在github上配置显式启用Actions并授权Secrets访问：
+1. 打开github上fork后的仓库，点击上方Actions标签，在出现的界面中点击确认风险提示
+2. 再次使用docker_pull命令测试工作流是否正常触发
