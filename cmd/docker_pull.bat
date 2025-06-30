@@ -71,6 +71,11 @@ if "%~1"=="" (
     exit /b 1
 )
 
+:: 执行git pull操作
+echo [refresh git repo] Start git pull: 
+pushd "!IMAGES_DIR!"
+git pull
+popd
 
 :: 写入images.txt文件
 echo [record images] Writing tags to !IMAGES_DIR!\images.txt
@@ -80,10 +85,9 @@ echo [record images] Writing tags to !IMAGES_DIR!\images.txt
     )
 ) > "!IMAGES_DIR!\images.txt"
 
-:: 执行git操作
-echo [commit images] Start git operation: 
+:: 执行git commit操作
+echo [commit images] Start git commit: 
 pushd "!IMAGES_DIR!"
-git pull
 git add images.txt
 git commit -m "refactor: add docker tags: %*"
 git push
