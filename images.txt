@@ -1,1 +1,1 @@
-rabbitmq:3.13.1-management
+python:3.12-slim
